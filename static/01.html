@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" type="text/css" href="/bootstrap.css" />
+    <script src="/jquery-2.1.4.min.js"></script>
+    <script src="/bootstrap.js"></script>
+    <title>Document</title>
+</head>
+<body>
+    <div class="container">
+            <!-- 按钮触发模态框 -->
+        <button id="type" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#myModal" style="display:none">开始演示模态框</button>
+            <!-- 模态框（Modal） -->
+        <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h4 class="modal-title" id="myModalLabel">少侠请留名：</h4>
+                        </div>
+                        <div class="modal-body">
+                                <input id="userName" type="text" class="form-control" placeholder="Username" aria-describedby="basic-addon1">
+                        </div>
+                        <div class="modal-footer">
+                                <div  class="alert alert-danger" role="alert">输入昵称后即可加入聊天室！</div>
+                                <p id="info" class="bg-danger" style="display: none">昵称不可以为空哟！</p>
+                            <button id="sure" type="button" class="btn btn-primary" >确认</button>
+                        </div>
+                    </div><!-- /.modal-content -->
+                </div><!-- /.modal -->
+        </div>
+        <span>您好,请说话</span>
+        <label id="names"  for="inputHelpBlock">源流</label>  
+        <textarea class="form-control" rows="3" name="msgData" id="speak"></textarea>
+        <div id="errContent"  class="alert alert-danger" role="alert" style="display:none">输入内容不能为空！</div>
+        <button id="btn" type="button" class="btn btn-primary">发送</button>&nbsp;&nbsp;&nbsp;
+        <button id="clear" type="button" class="btn btn-success">清空输入内容</button>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <button id="clearAll" type="button" class="btn btn-danger" >清空聊天记录</button>
+        <hr/>
+        <h4>在线聊天室</h4>
+        <div id="content" style="height:400px;overflow:scroll">
+        </div>
+        <nav class="navbar navbar-default navbar-static-top">
+                <div class="container">
+                        <p class="navbar-text">本聊天室弘扬正能量,请不要口吐芬芳。没事就夸站长</p>
+                </div>
+        </nav>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        if(localStorage.getItem("name")){
+            var newName=localStorage.getItem("name");
+            $('#names').text(newName);
+        }else{
+            $('#type').trigger("click",function(){
+            });
+        $("#sure").click(function(){
+            if(!$("#userName").val()){
+                $('#info').show();
+            }else{
+                $("#sure").attr("data-dismiss","modal");
+                var newName=$("#userName").val();
+                $('#names').text(newName);
+                localStorage.setItem("name",newName);
+            }
+            })
+        }
+        var str='';
+        if(localStorage.length){
+            for (var i = 0; i < localStorage.length; i++){
+            if(localStorage.key(i)=="name"){
+                continue;
+            }
+            var arr=["bg-primary","bg-success","bg-info","bg-warning","bg-danger"];
+            var number=Math.floor((Math.random()*4)+1);
+            var name=JSON.parse(localStorage.getItem(localStorage.key(i))).name;
+            var msg=JSON.parse(localStorage.getItem(localStorage.key(i))).msg;
+            str=str+`<label id="names" for="inputHelpBlock">${name}</label>&nbsp;&nbsp;&nbsp;<span>${localStorage.key(i)}</span><p class="${arr[number]}">${msg}</p>`;   
+         }
+         console.log(str);
+         $('#content').append(str);
+        }
+    var socket = io('http://localhost:8888');
+    socket.on('connect', function(){
+        console.log('连接上了')
+    });
+    socket.on('msg1', function(data){
+        console.log(data);    
+    });
+    var i=1;
+    socket.on('msg2',function(data){
+        var time=new Date().toLocaleString();
+        var arr=["bg-primary","bg-success","bg-info","bg-warning","bg-danger"];
+        var number=Math.floor((Math.random()*4)+1);
+        var str=`<label id="names" for="inputHelpBlock">${data.name}</label>&nbsp;&nbsp;&nbsp;<span>${time}</span><p class="${arr[number]}">${data.sendMsg}</p>`;
+        localStorage.setItem(time,JSON.stringify({"name":data.name,"msg":data.sendMsg}));
+        i=i+1;
+        $('#content').append(str);
+
+    })
+    socket.on('disconnect', function(){
+        console.log('断开连接');
+    });
+    $("#btn").click(function(){
+        $('#errContent').hide();
+        var name=$("#names").text();
+        var sendMsg=$('#speak').val();
+        if(sendMsg){
+            socket.emit('sendMsg',{
+            name,    
+            sendMsg
+        });
+        $('#speak').val("");
+        }else{
+            $('#errContent').show();
+        }
+    });
+    $("#clear").click(function(){
+        $('#speak').val("").focus();
+    });
+    $("#clearAll").click(function(){
+        localStorage.clear();
+        $('#content').html("");
+    });
+</script>
+</body>
+</html>
